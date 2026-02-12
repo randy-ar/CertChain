@@ -245,7 +245,7 @@ export function CertificateForm({ walletAddress }: CertificateFormProps) {
                                     rel="noopener noreferrer"
                                     className="text-xs text-primary underline break-all"
                                 >
-                                    Lihat di Polygonscan: {txHash}
+                                    Lihat di Arbiscan: {txHash}
                                 </a>
                             </div>
                         )}

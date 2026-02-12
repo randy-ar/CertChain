@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CertChain — Blockchain Certificate Verification (PoC)
 
-## Getting Started
+Proof of Concept untuk menyimpan hash sertifikat digital di blockchain, sehingga keaslian sertifikat dapat diverifikasi secara transparan dan tidak dapat dipalsukan.
 
-First, run the development server:
+## Cara Kerja
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. User mengisi **nama** dan **email** di form
+2. Sistem generate **PDF sertifikat** dan menghitung **SHA-256 hash** dari file tersebut
+3. Hash disimpan ke **smart contract** di blockchain melalui MetaMask
+4. Siapapun bisa memverifikasi keaslian sertifikat dengan memasukkan hash atau upload ulang file PDF
+
+## Tech Stack
+
+| Komponen | Teknologi |
+|---|---|
+| Frontend | Next.js, React, Shadcn/UI, Tailwind CSS |
+| PDF Generation | jsPDF |
+| Hashing | crypto-js (SHA-256) |
+| Blockchain Library | **ethers.js** — library untuk berkomunikasi dengan blockchain (mengirim transaksi, membaca data contract, query event logs) |
+| Smart Contract | Solidity, di-compile & deploy via **Hardhat** |
+| Wallet | **MetaMask** (browser extension) |
+
+## Network & Token
+
+| Item | Detail |
+|---|---|
+| Network | **Arbitrum Sepolia Testnet** |
+| Chain ID | 421614 |
+| Token (gas fee) | **ETH** (testnet) |
+| RPC | `https://sepolia-rollup.arbitrum.io/rpc` |
+| Block Explorer | https://sepolia.arbiscan.io |
+| Contract Address | `0x10db2F7Bf11622D6C8bE6e6073Df0755D3b2F090` |
+
+## Cara Top Up Token Testnet
+
+MetaMask wallet membutuhkan **ETH testnet** di Arbitrum Sepolia untuk membayar gas fee transaksi.
+
+**Langkah-langkah:**
+
+1. Install **MetaMask** di browser → buat akun → catat wallet address
+2. Buka **Google Cloud Faucet**: https://cloud.google.com/application/web3/faucet/ethereum/sepolia
+3. Login dengan akun Google
+4. Pilih **"Ethereum Sepolia"** → paste wallet address → klik claim
+5. ETH Sepolia akan masuk ke wallet
+6. **Bridge** ETH Sepolia ke Arbitrum Sepolia menggunakan [Arbitrum Bridge](https://bridge.arbitrum.io/)
+7. Setelah bridge selesai, ETH akan tersedia di Arbitrum Sepolia untuk membayar gas fee
+
+> **Catatan:** Google Cloud faucet memberikan ETH di **Ethereum Sepolia**, yang perlu di-bridge ke **Arbitrum Sepolia** agar bisa digunakan untuk deploy dan transaksi.
+
+## Smart Contract
+
+File: `contracts/SimpleCert.sol`
+
+Contract sederhana dengan 2 fungsi utama:
+
+**`storeHash(string _hash)`** — Menyimpan hash sertifikat ke blockchain. Setiap hash hanya bisa disimpan sekali. Ketika dipanggil, contract mencatat hash beserta timestamp dan emit event `CertificateMinted`.
+
+**`verifyHash(string _hash)`** — Mengecek apakah hash sudah tersimpan di blockchain. Mengembalikan status valid (`true`/`false`) dan timestamp kapan hash tersebut disimpan.
+
+```solidity
+mapping(string => uint256) public certificates;  // hash => timestamp
+
+event CertificateMinted(string indexed certificateHash, uint256 timestamp);
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup & Development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Install dependencies
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Jalankan dev server
+npm run dev
 
-## Learn More
+# Compile smart contract
+npx hardhat --config hardhat.config.cjs compile
 
-To learn more about Next.js, take a look at the following resources:
+# Deploy smart contract (pastikan .env sudah terisi PRIVATE_KEY)
+npx hardhat --config hardhat.config.cjs run scripts/deploy.cjs --network arbitrum-sepolia
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Environment Variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Buat file `.env` di root project:
 
-## Deploy on Vercel
+```
+PRIVATE_KEY=private_key_metamask_anda
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> **Penting:** Jangan gunakan wallet utama. Gunakan wallet khusus development.
